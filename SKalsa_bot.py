@@ -43,9 +43,9 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(reservation_json['data']) > 0:
         for slot in reservation_json['data']:
             if day_as_string + ' ' + hour in slot['attributes']['endtime']:
-                result = "Päivälle " + day_as_string + " on vuoro joka loppuu tunnilla " + hour 
+                result = "Päivälle " + day_as_string + " on vapaana vuoro joka loppuu tunnilla " + hour 
                 break
-        result = "Päivälle " + day_as_string + " EI OLE vuoroa joka loppuu tunnilla " + hour 
+        result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour 
     
     else:
         result = "Vuorot eivät ole vielä varattavissa koska dataa ei löytynyt"
