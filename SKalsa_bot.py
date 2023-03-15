@@ -48,7 +48,7 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour 
     
     else:
-        result = "Vuorot eivät ole vielä varattavissa koska dataa ei löytynyt"
+        result = "Päivälle " + day_as_string + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
