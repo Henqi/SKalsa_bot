@@ -12,9 +12,11 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 
 logging.basicConfig(
+    filename='skalsa_bot.log',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG
 )
+logging.getLogger("hpack").setLevel("INFO")
 
 def get_next_same_weekday(date, day):
     days = (day - date.isoweekday() + 7) % 7
