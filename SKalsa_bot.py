@@ -10,9 +10,10 @@ import datetime
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
+logfile_path = os.getenv("LOGFILE_PATH")
 
 logging.basicConfig(
-    filename='skalsa_bot.log',
+    filename=logfile_path,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.DEBUG
 )
