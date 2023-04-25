@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
@@ -13,9 +14,10 @@ api_key = os.getenv("API_KEY")
 logfile_path = os.getenv("LOGFILE_PATH")
 
 logging.basicConfig(
-    filename=logfile_path,
+    handlers=[RotatingFileHandler(logfile_path, maxBytes=20000000, backupCount=30)],
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
+    datefmt='%Y-%m-%dT%H:%M:%S'
 )
 logging.getLogger("hpack").setLevel("INFO")
 
