@@ -72,24 +72,14 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for slot in reservation_json["data"]:
             if day_as_string + " " + hour in slot["attributes"]["endtime"]:
                 result = (
-                    "Päivälle "
-                    + day_as_string
-                    + " on vapaana vuoro joka loppuu tunnilla "
-                    + hour
+                    "Päivälle " + day_as_string + " on vapaana vuoro joka loppuu tunnilla " + hour
                 )
                 break
-        result = (
-            "Päivälle "
-            + day_as_string
-            + " EI OLE vapaata vuoroa joka loppuu tunnilla "
-            + hour
-        )
+        result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour
 
     else:
         result = (
-            "Päivälle "
-            + day_as_string
-            + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
+            "Päivälle " + day_as_string + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
         )
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
@@ -133,24 +123,14 @@ async def deloitte(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for slot in reservation_json["data"]:
             if day_as_string + " " + hour in slot["attributes"]["endtime"]:
                 result = (
-                    "Päivälle "
-                    + day_as_string
-                    + " on vapaana vuoro joka loppuu tunnilla "
-                    + hour
+                    "Päivälle " + day_as_string + " on vapaana vuoro joka loppuu tunnilla " + hour
                 )
                 break
-        result = (
-            "Päivälle "
-            + day_as_string
-            + " EI OLE vapaata vuoroa joka loppuu tunnilla "
-            + hour
-        )
+        result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour
 
     else:
         result = (
-            "Päivälle "
-            + day_as_string
-            + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
+            "Päivälle " + day_as_string + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
         )
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
