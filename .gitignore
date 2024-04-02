@@ -1,6 +1,7 @@
 requests
 skalsa_bot.log*
 logs/
+.ruff_cache*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
