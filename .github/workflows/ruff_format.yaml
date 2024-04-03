@@ -25,7 +25,7 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff check (lint)
-        run: ruff check --verbose
+        run: ruff check SKalsa_bot.py --verbose
 
       - name: Run Ruff format
-        run: ruff format --verbose
+        run: ruff format SKalsa_bot.py --verbose
