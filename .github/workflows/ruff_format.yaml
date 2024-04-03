@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  check & format:
+  ruff-check-and-format:
     runs-on: ubuntu-latest
 
     steps:
