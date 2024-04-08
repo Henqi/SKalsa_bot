@@ -27,5 +27,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
+      - name: Create .env file
+        run: echo LOGFILE_PATH="skalsa_bot.log" > .env
+
       - name: Run tests
         run: poetry run pytest
