@@ -7,10 +7,12 @@ on:
     paths:
       - "**.py"
       - "pyproject.toml"
+      - "**.yaml"
   pull_request:
     paths:
       - "**.py"
       - "pyproject.toml"
+      - "**.yaml"
 
 jobs:
   ruff-check-and-format:
@@ -29,7 +31,7 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff check (lint)
-        run: ruff check src/SKalsa_bot.py --verbose
+        run: ruff check --verbose
 
       - name: Run Ruff format
-        run: ruff format src/SKalsa_bot.py --verbose
+        run: ruff format --verbose
