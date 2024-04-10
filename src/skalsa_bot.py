@@ -90,7 +90,7 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
 
-async def deloitte(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = date.today()
     day = get_next_same_weekday(today, 2)
     day_as_string = day.strftime("%Y-%m-%d")
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     hakis_handler = CommandHandler("hakis", hakis)
     application.add_handler(hakis_handler)
 
-    deloitte_handler = CommandHandler("deloitte", deloitte)
-    application.add_handler(deloitte_handler)
+    delsu_handler = CommandHandler("delsu", delsu)
+    application.add_handler(delsu_handler)
 
     application.run_polling()
