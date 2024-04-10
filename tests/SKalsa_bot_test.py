@@ -1,5 +1,7 @@
 import datetime
+
 import pytest
+
 from src.SKalsa_bot import get_next_same_weekday
 
 
