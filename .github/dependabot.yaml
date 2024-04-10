@@ -5,9 +5,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
 
   # Maintain dependencies for Python
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
+      # Runs once each month. This is on the first day of the month.
       interval: "monthly"
