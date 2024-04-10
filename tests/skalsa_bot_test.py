@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from src.SKalsa_bot import get_next_same_weekday
+from src.skalsa_bot import get_next_same_weekday
 
 
 @pytest.mark.parametrize(
