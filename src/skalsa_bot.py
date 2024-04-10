@@ -24,11 +24,22 @@ logging.basicConfig(
 logging.getLogger("hpack").setLevel("INFO")
 
 
-def get_next_same_weekday(date, day):
-    if day <= 0 or day > 7:
+def get_next_same_weekday(date, weekday):
+    # takes as input a date and a weekday.
+    # If the given date is the weekday in question, returns the given date.
+    # Otherwise looks for the next weekday in question.
+    #  1 = monday
+    #  2 = tuesday
+    #  3 = wednesday
+    #  4 = thursday
+    #  5 = friday
+    #  6 = saturday
+    #  7 = sunday
+
+    if weekday <= 0 or weekday > 7:
         raise ValueError("Input value must be between 0 and 7 (inclusive)")
     else:
-        days = (day - date.isoweekday() + 7) % 7
+        days = (weekday - date.isoweekday() + 7) % 7
         return date + datetime.timedelta(days=days)
 
 
