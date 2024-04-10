@@ -25,8 +25,11 @@ logging.getLogger("hpack").setLevel("INFO")
 
 
 def get_next_same_weekday(date, day):
-    days = (day - date.isoweekday() + 7) % 7
-    return date + datetime.timedelta(days=days)
+    if day <= 0 or day > 7:
+        raise ValueError("Input value must be between 0 and 7 (inclusive)")
+    else:
+        days = (day - date.isoweekday() + 7) % 7
+        return date + datetime.timedelta(days=days)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
