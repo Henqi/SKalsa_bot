@@ -1,14 +1,29 @@
 # SKalsa_bot
+
 My feeble attempt at creating a working telegram bot
 
-This telegram bot checks if Arena Center Hakaniemi (aka Hakis) has an available shift at a specific time and posts the data as response
----
+## This telegram bot checks if Arena Center Hakaniemi (aka Hakis) has an available shift at a specific time and posts the data as response
+
 How to use bot:
 
 1. Clone the repo
-2. Install requirements from requirements.txt 
-    - "pip install -r requirements.txt"
+
+```bash
+git clone git@github.com:Henqi/SKalsa_bot.git
+```
+
+2. Install poetry (https://python-poetry.org/docs/)
 3. Setup .env file with secret telegram bot APIKEY & LOGFILE_PATH
-4. Run Skalsa_bot.py python script
-    - "python SKalsa_bot.py" or "python3.10 SKalsa_bot.py" 
-5. Hope it works
+4. Install dependencies
+
+```bash
+poetry install
+```
+
+5. Run skalsa_bot.py
+
+```bash
+poetry run python src/skalsa_bot.py
+```
+
+6. Hope it works 🤞
