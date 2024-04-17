@@ -61,42 +61,9 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = "59305e30-8b49-11e9-800b-fa163e3c66dd"
     user_id = "d7c92d04-807b-11e9-b480-fa163e3c66dd"  # kenttä2
 
-    day_url = (
-        "https://avoinna24.fi/api/slot?filter[ismultibooking]="
-        + ismultibooking
-        + "&filter[branch_id]="
-        + branch_id
-        + "&filter[group_id]="
-        + group_id
-        + "&filter[product_id]="
-        + product_id
-        + "&filter[user_id]="
-        + user_id
-        + "&filter[date]="
-        + day_as_string
-        + "&filter[start]="
-        + day_as_string
-        + "&filter[end]="
-        + day_as_string
+    result = check_slot_availability(
+        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
     )
-    headers = {"X-Subdomain": "arenacenter"}
-
-    reservation_data = requests.get(day_url, headers=headers)
-    reservation_json = reservation_data.json()
-
-    if len(reservation_json["data"]) > 0:
-        for slot in reservation_json["data"]:
-            if day_as_string + " " + hour in slot["attributes"]["endtime"]:
-                result = (
-                    "Päivälle " + day_as_string + " on vapaana vuoro joka loppuu tunnilla " + hour
-                )
-                break
-        result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour
-
-    else:
-        result = (
-            "Päivälle " + day_as_string + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
-        )
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
@@ -112,23 +79,25 @@ async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = "59305e30-8b49-11e9-800b-fa163e3c66dd"
     user_id = "ea8b1cf4-807b-11e9-93b7-fa163e3c66dd"  # kenttä3
 
+    result = check_slot_availability(
+        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
+    )
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
+
+
+def check_slot_availability(
+    branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
+):
     day_url = (
-        "https://avoinna24.fi/api/slot?filter[ismultibooking]="
-        + ismultibooking
-        + "&filter[branch_id]="
-        + branch_id
-        + "&filter[group_id]="
-        + group_id
-        + "&filter[product_id]="
-        + product_id
-        + "&filter[user_id]="
-        + user_id
-        + "&filter[date]="
-        + day_as_string
-        + "&filter[start]="
-        + day_as_string
-        + "&filter[end]="
-        + day_as_string
+        f"https://avoinna24.fi/api/slot?filter[ismultibooking]={ismultibooking}"
+        f"&filter[branch_id]={branch_id}"
+        f"&filter[group_id]={group_id}"
+        f"&filter[product_id]={product_id}"
+        f"&filter[user_id]={user_id}"
+        f"&filter[date]={day_as_string}"
+        f"&filter[start]={day_as_string}"
+        f"&filter[end]={day_as_string}"
     )
     headers = {"X-Subdomain": "arenacenter"}
 
@@ -137,19 +106,12 @@ async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(reservation_json["data"]) > 0:
         for slot in reservation_json["data"]:
-            if day_as_string + " " + hour in slot["attributes"]["endtime"]:
-                result = (
-                    "Päivälle " + day_as_string + " on vapaana vuoro joka loppuu tunnilla " + hour
-                )
-                break
-        result = "Päivälle " + day_as_string + " EI OLE vapaata vuoroa joka loppuu tunnilla " + hour
-
+            if f"{day_as_string} {hour}" in slot["attributes"]["endtime"]:
+                result = f"Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour}"
+                return result
+        return f"Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
     else:
-        result = (
-            "Päivälle " + day_as_string + " ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
-        )
-
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
+        return f"Päivälle {day_as_string} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
 
 
 if __name__ == "__main__":
