@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use chrono::{Datelike, Duration};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
-use serde_json;
 
 const API_URL: &str = "https://avoinna24.fi/api/slot";
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36";
@@ -66,7 +65,7 @@ async fn get_slot_availability_data(
             .await
             .context("Failed to parse response json")?;
         //println!("Response:\n{json:#?}");
-        return Ok(json);
+        Ok(json)
     } else {
         Err(anyhow!("Failed to fetch data: {}", response.status()))
     }
