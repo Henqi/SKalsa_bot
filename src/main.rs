@@ -66,15 +66,15 @@ async fn main() -> anyhow::Result<()> {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
     //println!("{:#?}", client);
 
-    println!("Hakis:\n{}", check_hakis(&client).await?);
     println!("Delsu:\n{}", check_delsu(&client).await?);
+    println!("Hakis:\n{}", check_hakis(&client).await?);
 
     Ok(())
 }
 
 async fn check_hakis(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Wednesday;
-    let hour: u32 = 18;
+    let hour = 18;
     let hakis = CourtId::new(
         "Hakis",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
@@ -91,7 +91,7 @@ async fn check_hakis(client: &Client) -> anyhow::Result<String> {
 
 async fn check_delsu(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Tuesday;
-    let hour: u32 = 19;
+    let hour = 19;
     let delsu = CourtId::new(
         "Delsu",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
