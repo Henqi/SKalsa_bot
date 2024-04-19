@@ -27,3 +27,29 @@ This telegram bot checks if Arena Center Hakaniemi (aka Hakis) has an available 
     ```
 
 6. Hope it works 🤞
+
+## Rust CLI
+
+Run with:
+
+```shell
+cargo run
+# with arguments
+cargo run -- --help
+```
+
+Usage:
+
+```console
+Usage: skalsa_bot [OPTIONS] [COURT]
+
+Arguments:
+  [COURT]  Optional court name to check [possible values: hakis, delsu]
+
+Options:
+  -d, --day <DAY>    Weekday to check when specifying court name [1-7]
+  -t, --time <HOUR>  Hour to check when specifying court name [00-23]
+  -v, --verbose      Print verbose information
+  -h, --help         Print help
+  -V, --version      Print version
+```
