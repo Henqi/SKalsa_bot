@@ -111,34 +111,32 @@ async fn main() -> anyhow::Result<()> {
     );
 
     match args.court {
-        Some(court) => match court {
-            CourtName::Delsu => {
-                println!(
-                    "{}",
-                    check_court(
-                        &client,
-                        &delsu,
-                        args.day.unwrap_or(Weekday::Tuesday),
-                        args.time.unwrap_or(19),
-                        args.verbose
-                    )
-                    .await?
-                );
-            }
-            CourtName::Hakis => {
-                println!(
-                    "{}",
-                    check_court(
-                        &client,
-                        &hakis,
-                        args.day.unwrap_or(Weekday::Wednesday),
-                        args.time.unwrap_or(18),
-                        args.verbose
-                    )
-                    .await?
-                );
-            }
-        },
+        Some(CourtName::Delsu) => {
+            println!(
+                "{}",
+                check_court(
+                    &client,
+                    &delsu,
+                    args.day.unwrap_or(Weekday::Tuesday),
+                    args.time.unwrap_or(19),
+                    args.verbose
+                )
+                .await?
+            );
+        }
+        Some(CourtName::Hakis) => {
+            println!(
+                "{}",
+                check_court(
+                    &client,
+                    &hakis,
+                    args.day.unwrap_or(Weekday::Wednesday),
+                    args.time.unwrap_or(18),
+                    args.verbose
+                )
+                .await?
+            );
+        }
         None => {
             println!(
                 "{}",
