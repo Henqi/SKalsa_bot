@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use reqwest::header::HeaderMap;
@@ -19,8 +21,10 @@ enum Weekday {
     Sunday,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct CourtId {
+    name: String,
     branch_id: String,
     group_id: String,
     product_id: String,
@@ -60,7 +64,7 @@ struct Slot {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
-    println!("{:#?}", client);
+    //println!("{:#?}", client);
 
     println!("Hakis:\n{}", check_hakis(&client).await?);
     println!("Delsu:\n{}", check_delsu(&client).await?);
@@ -72,6 +76,7 @@ async fn check_hakis(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Wednesday;
     let hour: u32 = 18;
     let hakis = CourtId::new(
+        "Hakis",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
         "a17ccc08-838a-11e9-8fd9-fa163e3c66dd",
         "59305e30-8b49-11e9-800b-fa163e3c66dd",
@@ -88,6 +93,7 @@ async fn check_delsu(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Tuesday;
     let hour: u32 = 19;
     let delsu = CourtId::new(
+        "Delsu",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
         "a17ccc08-838a-11e9-8fd9-fa163e3c66dd",
         "59305e30-8b49-11e9-800b-fa163e3c66dd",
@@ -137,7 +143,7 @@ async fn get_slot_availability_data(
 fn check_slot_availability(court_data: &[Slot], day_as_string: &str, hour: u32) -> String {
     if !court_data.is_empty() {
         for (index, slot) in court_data.iter().enumerate() {
-            println!("{index:>2}: {:?}", slot);
+            println!("{index:>2}: {:}", slot);
             // TODO: better availability check
             if slot.end_time.hour() == hour {
                 return format!(
@@ -201,8 +207,15 @@ impl Weekday {
 }
 
 impl CourtId {
-    pub fn new(branch_id: &str, group_id: &str, product_id: &str, user_id: &str) -> Self {
+    pub fn new(
+        name: &str,
+        branch_id: &str,
+        group_id: &str,
+        product_id: &str,
+        user_id: &str,
+    ) -> Self {
         CourtId {
+            name: name.to_string(),
             branch_id: branch_id.to_string(),
             group_id: group_id.to_string(),
             product_id: product_id.to_string(),
@@ -222,6 +235,21 @@ impl CourtId {
             ("filter[start]", date.clone()),
             ("filter[end]", date),
         ]
+    }
+}
+
+impl fmt::Display for Slot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Slot {} {} {:02}:{:02} - {:02}:{:02}",
+            self.start_time.format("%Y-%m-%d"),
+            self.start_time.weekday(),
+            self.start_time.hour(),
+            self.start_time.minute(),
+            self.end_time.hour(),
+            self.end_time.minute()
+        )
     }
 }
 
