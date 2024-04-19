@@ -109,7 +109,8 @@ async fn check_court(
     }
 
     let date_str = day.date_str();
-    match check_slot_availability(&slots, hour) {
+    let utc_hour = local_hour_to_utc(hour)?;
+    match check_slot_availability(&slots, utc_hour) {
         None => Ok(format!(
             "Päivälle {date_str} ei löytynyt yhtään vapaata vuoroa"
         )),
@@ -151,9 +152,8 @@ async fn get_slot_availability_data(
     }
 }
 
-fn check_slot_availability(court_data: &[Slot], hour: u32) -> Option<bool> {
+fn check_slot_availability(court_data: &[Slot], utc_hour: u32) -> Option<bool> {
     if !court_data.is_empty() {
-        let utc_hour = local_hour_to_utc(hour).ok()?;
         for slot in court_data.iter() {
             // TODO: better availability check
             if slot.end_time.hour() == utc_hour {
@@ -183,11 +183,18 @@ fn extract_free_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
 }
 
 fn local_hour_to_utc(hour: u32) -> anyhow::Result<u32> {
-    let naive_time =
-        NaiveTime::from_hms_opt(hour, 0, 0).context("Failed to create time from given hour")?;
+    let naive_time = NaiveTime::from_hms_opt(hour, 0, 0)
+        .ok_or_else(|| anyhow!("Invalid hour provided: {hour}"))
+        .context("Failed to create time from given hour")?;
+
     let local_date = Local::now().date_naive();
     let naive_datetime = local_date.and_time(naive_time);
-    let local_datetime = Local.from_local_datetime(&naive_datetime).unwrap();
+
+    let local_datetime = Local
+        .from_local_datetime(&naive_datetime)
+        .single()
+        .ok_or_else(|| anyhow!("Failed to convert naive datetime to local datetime"))?;
+
     let utc_datetime = local_datetime.with_timezone(&Utc);
     Ok(utc_datetime.hour())
 }
