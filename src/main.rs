@@ -171,21 +171,51 @@ impl CourtId {
         }
     }
 
-    pub fn query_parameters(&self, day: &Weekday) -> Vec<(String, String)> {
+    pub fn query_parameters(&self, day: &Weekday) -> Vec<(&'static str, String)> {
         let date = day.date_str();
-        let query_params: Vec<(String, String)> = vec![
-            ("filter[ismultibooking]".to_string(), "false".to_string()),
-            ("filter[branch_id]".to_string(), self.branch_id.to_string()),
-            ("filter[group_id]".to_string(), self.group_id.to_string()),
-            (
-                "filter[product_id]".to_string(),
-                self.product_id.to_string(),
-            ),
-            ("filter[user_id]".to_string(), self.user_id.to_string()),
-            ("filter[date]".to_string(), date.clone()),
-            ("filter[start]".to_string(), date.clone()),
-            ("filter[end]".to_string(), date),
-        ];
-        query_params
+        vec![
+            ("filter[ismultibooking]", "false".to_string()),
+            ("filter[branch_id]", self.branch_id.clone()),
+            ("filter[group_id]", self.group_id.clone()),
+            ("filter[product_id]", self.product_id.clone()),
+            ("filter[user_id]", self.user_id.clone()),
+            ("filter[date]", date.clone()),
+            ("filter[start]", date.clone()),
+            ("filter[end]", date),
+        ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Datelike;
+
+    #[test]
+    fn test_to_chrono() {
+        assert_eq!(Weekday::Monday.to_chrono(), chrono::Weekday::Mon);
+        assert_eq!(Weekday::Tuesday.to_chrono(), chrono::Weekday::Tue);
+        assert_eq!(Weekday::Wednesday.to_chrono(), chrono::Weekday::Wed);
+        assert_eq!(Weekday::Thursday.to_chrono(), chrono::Weekday::Thu);
+        assert_eq!(Weekday::Friday.to_chrono(), chrono::Weekday::Fri);
+        assert_eq!(Weekday::Saturday.to_chrono(), chrono::Weekday::Sat);
+        assert_eq!(Weekday::Sunday.to_chrono(), chrono::Weekday::Sun);
+    }
+
+    #[test]
+    fn test_next_date() {
+        let test_day = Weekday::Monday;
+        let next_monday = test_day.next_date();
+        assert_eq!(next_monday.weekday(), chrono::Weekday::Mon);
+        assert!(next_monday >= Utc::now());
+    }
+
+    #[test]
+    fn test_date_str_format() {
+        let test_day = Weekday::Friday;
+        let date_str = test_day.date_str();
+        // Example test to ensure format is "YYYY-MM-DD"
+        assert!(date_str.chars().nth(4) == Some('-') && date_str.chars().nth(7) == Some('-'));
+        assert_eq!(date_str.len(), 10);
     }
 }
