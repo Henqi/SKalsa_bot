@@ -1,13 +1,36 @@
 use std::fmt;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Datelike, Duration, Local, NaiveTime, TimeZone, Timelike, Utc};
-use reqwest::header::HeaderMap;
+use clap::Parser;
+use colored::{ColoredString, Colorize};
 use reqwest::Client;
+use reqwest::header::HeaderMap;
 use serde::Deserialize;
+use strum::EnumString;
 
 const API_URL: &str = "https://avoinna24.fi/api/slot";
 const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15";
+
+#[derive(Parser)]
+#[command(author, about, version)]
+struct Args {
+    /// Optional court name to check
+    court: Option<CourtName>,
+
+    /// Weekday to check when specifying court name [1-7]
+    #[arg(value_enum, short, long)]
+    day: Option<Weekday>,
+
+    /// Hour to check when specifying court name [00-23]
+    #[arg(short, long, value_name = "HOUR")]
+    time: Option<u32>,
+
+    /// Print verbose information
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -19,6 +42,12 @@ enum Weekday {
     Friday,
     Saturday,
     Sunday,
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum, EnumString)]
+enum CourtName {
+    Hakis,
+    Delsu
 }
 
 #[derive(Debug, Clone)]
@@ -62,15 +91,9 @@ struct Slot {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
     let client = Client::builder().user_agent(USER_AGENT).build()?;
 
-    println!("{}", check_delsu(&client, Weekday::Tuesday, 19).await?);
-    println!("{}", check_hakis(&client, Weekday::Wednesday, 18).await?);
-
-    Ok(())
-}
-
-async fn check_hakis(client: &Client, day: Weekday, local_hour: u32) -> anyhow::Result<String> {
     let hakis = CourtId::new(
         "Hakis",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
@@ -79,10 +102,6 @@ async fn check_hakis(client: &Client, day: Weekday, local_hour: u32) -> anyhow::
         "d7c92d04-807b-11e9-b480-fa163e3c66dd",
     );
 
-    check_court(client, &hakis, day, local_hour).await
-}
-
-async fn check_delsu(client: &Client, day: Weekday, local_hour: u32) -> anyhow::Result<String> {
     let delsu = CourtId::new(
         "Delsu",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
@@ -91,7 +110,48 @@ async fn check_delsu(client: &Client, day: Weekday, local_hour: u32) -> anyhow::
         "ea8b1cf4-807b-11e9-93b7-fa163e3c66dd",
     );
 
-    check_court(client, &delsu, day, local_hour).await
+    match args.court {
+        Some(court) => match court {
+            CourtName::Delsu => {
+                println!(
+                    "{}",
+                    check_court(
+                        &client,
+                        &delsu,
+                        args.day.unwrap_or(Weekday::Tuesday),
+                        args.time.unwrap_or(19),
+                        args.verbose
+                    )
+                    .await?
+                );
+            }
+            CourtName::Hakis => {
+                println!(
+                    "{}",
+                    check_court(
+                        &client,
+                        &hakis,
+                        args.day.unwrap_or(Weekday::Wednesday),
+                        args.time.unwrap_or(18),
+                        args.verbose
+                    )
+                    .await?
+                );
+            }
+        },
+        None => {
+            println!(
+                "{}",
+                check_court(&client, &delsu, Weekday::Tuesday, 19, args.verbose).await?
+            );
+            println!(
+                "{}",
+                check_court(&client, &hakis, Weekday::Wednesday, 18, args.verbose).await?
+            );
+        }
+    }
+
+    Ok(())
 }
 
 async fn check_court(
@@ -99,30 +159,35 @@ async fn check_court(
     court: &CourtId,
     day: Weekday,
     hour: u32,
-) -> anyhow::Result<String> {
+    verbose: bool,
+) -> anyhow::Result<ColoredString> {
     let data = get_slot_availability_data(client, court, &day).await?;
     let slots = extract_free_slots_from_response(data);
 
-    println!("Free slots for {}:", court.name);
-    for (index, slot) in slots.iter().enumerate() {
-        println!("{index:>2}: {}", slot);
+    if verbose {
+        println!("{}", format!("Free slots for {}:", court.name).bold());
+        for (index, slot) in slots.iter().enumerate() {
+            println!("{index:>2}: {}", slot);
+        }
     }
 
     let date_str = day.date_str();
     let utc_hour = local_hour_to_utc(hour)?;
     match check_slot_availability(&slots, utc_hour) {
-        None => Ok(format!(
-            "Päivälle {date_str} ei löytynyt yhtään vapaata vuoroa"
-        )),
+        None => Ok(format!("Päivälle {date_str} ei löytynyt yhtään vapaata vuoroa").red()),
         Some(free) => {
             if free {
-                Ok(format!(
-                    "Päivälle {date_str} on vapaana vuoro joka loppuu tunnilla {hour}"
-                ))
+                Ok(
+                    format!("Päivälle {date_str} on vapaana vuoro joka loppuu tunnilla {hour}")
+                        .green(),
+                )
             } else {
-                Ok(format!(
-                    "Päivälle {date_str} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
-                ))
+                Ok(
+                    format!(
+                        "Päivälle {date_str} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
+                    )
+                    .yellow(),
+                )
             }
         }
     }
@@ -362,5 +427,39 @@ mod tests {
         };
 
         assert_eq!(parsed_data, expected_data);
+    }
+}
+
+impl FromStr for Weekday {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Weekday::Monday),
+            "2" => Ok(Weekday::Tuesday),
+            "3" => Ok(Weekday::Wednesday),
+            "4" => Ok(Weekday::Thursday),
+            "5" => Ok(Weekday::Friday),
+            "6" => Ok(Weekday::Saturday),
+            "7" => Ok(Weekday::Sunday),
+            _ => Err("Invalid day number"),
+        }
+    }
+}
+
+impl TryFrom<i32> for Weekday {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Weekday::Monday),
+            2 => Ok(Weekday::Tuesday),
+            3 => Ok(Weekday::Wednesday),
+            4 => Ok(Weekday::Thursday),
+            5 => Ok(Weekday::Friday),
+            6 => Ok(Weekday::Saturday),
+            7 => Ok(Weekday::Sunday),
+            _ => Err("Invalid day of the week"),
+        }
     }
 }
