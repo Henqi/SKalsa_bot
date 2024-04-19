@@ -7,7 +7,7 @@ use reqwest::Client;
 use serde::Deserialize;
 
 const API_URL: &str = "https://avoinna24.fi/api/slot";
-const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36";
+const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15";
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
