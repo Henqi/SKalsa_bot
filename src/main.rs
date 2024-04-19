@@ -5,8 +5,8 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, Datelike, Duration, Local, NaiveTime, TimeZone, Timelike, Utc};
 use clap::Parser;
 use colored::{ColoredString, Colorize};
-use reqwest::Client;
 use reqwest::header::HeaderMap;
+use reqwest::Client;
 use serde::Deserialize;
 use strum::EnumString;
 
@@ -47,7 +47,7 @@ enum Weekday {
 #[derive(Debug, Clone, Copy, clap::ValueEnum, EnumString)]
 enum CourtName {
     Hakis,
-    Delsu
+    Delsu,
 }
 
 #[derive(Debug, Clone)]
@@ -344,6 +344,40 @@ impl fmt::Display for Slot {
     }
 }
 
+impl FromStr for Weekday {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Weekday::Monday),
+            "2" => Ok(Weekday::Tuesday),
+            "3" => Ok(Weekday::Wednesday),
+            "4" => Ok(Weekday::Thursday),
+            "5" => Ok(Weekday::Friday),
+            "6" => Ok(Weekday::Saturday),
+            "7" => Ok(Weekday::Sunday),
+            _ => Err("Invalid day number"),
+        }
+    }
+}
+
+impl TryFrom<i32> for Weekday {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Weekday::Monday),
+            2 => Ok(Weekday::Tuesday),
+            3 => Ok(Weekday::Wednesday),
+            4 => Ok(Weekday::Thursday),
+            5 => Ok(Weekday::Friday),
+            6 => Ok(Weekday::Saturday),
+            7 => Ok(Weekday::Sunday),
+            _ => Err("Invalid day of the week"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -427,39 +461,5 @@ mod tests {
         };
 
         assert_eq!(parsed_data, expected_data);
-    }
-}
-
-impl FromStr for Weekday {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "1" => Ok(Weekday::Monday),
-            "2" => Ok(Weekday::Tuesday),
-            "3" => Ok(Weekday::Wednesday),
-            "4" => Ok(Weekday::Thursday),
-            "5" => Ok(Weekday::Friday),
-            "6" => Ok(Weekday::Saturday),
-            "7" => Ok(Weekday::Sunday),
-            _ => Err("Invalid day number"),
-        }
-    }
-}
-
-impl TryFrom<i32> for Weekday {
-    type Error = &'static str;
-
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Weekday::Monday),
-            2 => Ok(Weekday::Tuesday),
-            3 => Ok(Weekday::Wednesday),
-            4 => Ok(Weekday::Thursday),
-            5 => Ok(Weekday::Friday),
-            6 => Ok(Weekday::Saturday),
-            7 => Ok(Weekday::Sunday),
-            _ => Err("Invalid day of the week"),
-        }
     }
 }
