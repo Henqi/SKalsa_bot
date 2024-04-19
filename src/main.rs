@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context};
-use chrono::{DateTime, Utc};
-use chrono::{Datelike, Duration};
+use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
+use serde::Deserialize;
 
 const API_URL: &str = "https://avoinna24.fi/api/slot";
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36";
@@ -27,6 +27,36 @@ struct CourtId {
     user_id: String,
 }
 
+#[derive(Debug, Eq, PartialEq, Deserialize)]
+struct ApiResponse {
+    data: Vec<DataItem>,
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Deserialize)]
+struct DataItem {
+    id: Option<String>,
+    #[serde(rename = "type")]
+    data_type: String,
+    attributes: Option<Attributes>,
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Deserialize)]
+struct Attributes {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    product_id: Option<String>,
+    #[serde(rename = "starttime")]
+    start_time: DateTime<Utc>,
+    #[serde(rename = "endtime")]
+    end_time: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+struct Slot {
+    id: String,
+    start_time: DateTime<Utc>,
+    end_time: DateTime<Utc>,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
@@ -38,69 +68,9 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn get_slot_availability_data(
-    client: &Client,
-    booking: &CourtId,
-    weekday: &Weekday,
-) -> anyhow::Result<serde_json::Value> {
-    let mut headers = HeaderMap::new();
-    headers.insert("X-Subdomain", "arenacenter".parse()?);
-
-    let request = client
-        .get(API_URL)
-        .query(&booking.query_parameters(weekday))
-        .headers(headers);
-
-    println!("Request:\n{:#?}", request);
-
-    let response = request.send().await.context("Request failed")?;
-
-    println!("{:#?}", response);
-
-    if response.status().is_success() {
-        //let body = response.text().await?;
-        //println!("Response:\n{}", body);
-        let json: serde_json::Value = response
-            .json()
-            .await
-            .context("Failed to parse response json")?;
-        //println!("Response:\n{json:#?}");
-        Ok(json)
-    } else {
-        Err(anyhow!("Failed to fetch data: {}", response.status()))
-    }
-}
-
-fn check_slot_availability(
-    court_data: &serde_json::Value,
-    day_as_string: &str,
-    hour: &str,
-) -> String {
-    if court_data["data"].as_array().map_or(0, |v| v.len()) > 0 {
-        for value in court_data["data"].as_array().unwrap() {
-            let end_time = value["attributes"]["endtime"].as_str().unwrap_or("");
-            if end_time.contains(hour) {
-                return format!(
-                    "Päivälle {} on vapaana vuoro joka loppuu tunnilla {}",
-                    day_as_string, hour
-                );
-            }
-        }
-        format!(
-            "Päivälle {} EI OLE vapaata vuoroa joka loppuu tunnilla {}",
-            day_as_string, hour
-        )
-    } else {
-        format!(
-            "Päivälle {} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt",
-            day_as_string
-        )
-    }
-}
-
 async fn check_hakis(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Wednesday;
-    let hour = "18".to_string();
+    let hour: u32 = 18;
     let hakis = CourtId::new(
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
         "a17ccc08-838a-11e9-8fd9-fa163e3c66dd",
@@ -109,13 +79,14 @@ async fn check_hakis(client: &Client) -> anyhow::Result<String> {
     );
     // println!("Hakis:\n{:#?}", hakis);
     let data = get_slot_availability_data(client, &hakis, &day).await?;
-    let result = check_slot_availability(&data, &day.date_str(), &hour);
+    let slots = extract_slots_from_response(data);
+    let result = check_slot_availability(&slots, &day.date_str(), hour);
     Ok(result)
 }
 
 async fn check_delsu(client: &Client) -> anyhow::Result<String> {
     let day = Weekday::Tuesday;
-    let hour = String::from("19");
+    let hour: u32 = 19;
     let delsu = CourtId::new(
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
         "a17ccc08-838a-11e9-8fd9-fa163e3c66dd",
@@ -124,8 +95,76 @@ async fn check_delsu(client: &Client) -> anyhow::Result<String> {
     );
     // println!("Delsu:\n{:#?}", delsu);
     let data = get_slot_availability_data(client, &delsu, &day).await?;
-    let result = check_slot_availability(&data, &day.date_str(), &hour);
+    let slots = extract_slots_from_response(data);
+    let result = check_slot_availability(&slots, &day.date_str(), hour);
     Ok(result)
+}
+
+async fn get_slot_availability_data(
+    client: &Client,
+    court: &CourtId,
+    weekday: &Weekday,
+) -> anyhow::Result<ApiResponse> {
+    let mut headers = HeaderMap::new();
+    headers.insert("X-Subdomain", "arenacenter".parse()?);
+
+    let request = client
+        .get(API_URL)
+        .query(&court.query_parameters(weekday))
+        .headers(headers);
+
+    //println!("Request:\n{:#?}", request);
+
+    let response = request.send().await.context("Request failed")?;
+
+    //println!("{:#?}", response);
+
+    if response.status().is_success() {
+        //let body = response.text().await?;
+        //println!("Response:\n{}", body);
+        //let json: serde_json::Value = response
+        //    .json()
+        //    .await
+        //    .context("Failed to parse response json")?;
+        //println!("Response:\n{json:#?}");
+        let api_response: ApiResponse = response.json().await?;
+        Ok(api_response)
+    } else {
+        Err(anyhow!("Failed to fetch data: {}", response.status()))
+    }
+}
+
+fn check_slot_availability(court_data: &Vec<Slot>, day_as_string: &str, hour: u32) -> String {
+    if !court_data.is_empty() {
+        for (index, slot) in court_data.iter().enumerate() {
+            println!("{index:>2}: {:?}", slot);
+            // TODO: better availability check
+            if slot.end_time.hour() == hour {
+                return format!(
+                    "Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour}"
+                );
+            }
+        }
+        format!("Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}")
+    } else {
+        format!("Päivälle {day_as_string} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt",)
+    }
+}
+
+fn extract_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
+    api_response
+        .data
+        .into_iter()
+        .filter(|item| item.data_type == "slot" && item.attributes.is_some())
+        .map(|item| {
+            let attributes = item.attributes.unwrap();
+            Slot {
+                id: attributes.product_id.unwrap_or_default(),
+                start_time: attributes.start_time,
+                end_time: attributes.end_time,
+            }
+        })
+        .collect()
 }
 
 impl Weekday {
@@ -189,7 +228,8 @@ impl CourtId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Datelike;
+    use chrono::{Datelike, TimeZone};
+    use serde_json;
 
     #[test]
     fn test_to_chrono() {
@@ -217,5 +257,49 @@ mod tests {
         // Example test to ensure format is "YYYY-MM-DD"
         assert!(date_str.chars().nth(4) == Some('-') && date_str.chars().nth(7) == Some('-'));
         assert_eq!(date_str.len(), 10);
+    }
+
+    #[test]
+    fn test_deserialization() {
+        let json_data = r#"
+        {
+            "data": [
+                {
+                    "id": null,
+                    "type": "slot",
+                    "attributes": {
+                        "product_id": "59305e30-8b49-11e9-800b-fa163e3c66dd",
+                        "starttime": "2024-04-24T06:00:00Z",
+                        "endtime": "2024-04-24T07:00:00Z"
+                    },
+                    "relationships": null,
+                    "links": {
+                        "self_link": "/slot/"
+                    },
+                    "meta": null
+                }
+            ],
+            "meta": null,
+            "included": null
+        }
+        "#;
+
+        let parsed_data: ApiResponse = serde_json::from_str(json_data).unwrap();
+
+        let expected_data = ApiResponse {
+            data: vec![
+                DataItem {
+                    id: None,
+                    data_type: String::from("slot"),
+                    attributes: Option::from(Attributes {
+                        product_id: Option::from(String::from("59305e30-8b49-11e9-800b-fa163e3c66dd")),
+                        start_time: Utc.datetime_from_str("2024-04-24T06:00:00Z", "%Y-%m-%dT%H:%M:%SZ").unwrap(),
+                        end_time: Utc.datetime_from_str("2024-04-24T07:00:00Z", "%Y-%m-%dT%H:%M:%SZ").unwrap(),
+                    }),
+                }
+            ],
+        };
+
+        assert_eq!(parsed_data, expected_data);
     }
 }
