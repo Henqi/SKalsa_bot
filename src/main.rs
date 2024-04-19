@@ -134,7 +134,7 @@ async fn get_slot_availability_data(
     }
 }
 
-fn check_slot_availability(court_data: &Vec<Slot>, day_as_string: &str, hour: u32) -> String {
+fn check_slot_availability(court_data: &[Slot], day_as_string: &str, hour: u32) -> String {
     if !court_data.is_empty() {
         for (index, slot) in court_data.iter().enumerate() {
             println!("{index:>2}: {:?}", slot);
@@ -228,8 +228,7 @@ impl CourtId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Datelike, TimeZone};
-    use serde_json;
+    use chrono::{Datelike, NaiveDateTime};
 
     #[test]
     fn test_to_chrono() {
@@ -287,17 +286,25 @@ mod tests {
         let parsed_data: ApiResponse = serde_json::from_str(json_data).unwrap();
 
         let expected_data = ApiResponse {
-            data: vec![
-                DataItem {
-                    id: None,
-                    data_type: String::from("slot"),
-                    attributes: Option::from(Attributes {
-                        product_id: Option::from(String::from("59305e30-8b49-11e9-800b-fa163e3c66dd")),
-                        start_time: Utc.datetime_from_str("2024-04-24T06:00:00Z", "%Y-%m-%dT%H:%M:%SZ").unwrap(),
-                        end_time: Utc.datetime_from_str("2024-04-24T07:00:00Z", "%Y-%m-%dT%H:%M:%SZ").unwrap(),
-                    }),
-                }
-            ],
+            data: vec![DataItem {
+                id: None,
+                data_type: String::from("slot"),
+                attributes: Option::from(Attributes {
+                    product_id: Option::from(String::from("59305e30-8b49-11e9-800b-fa163e3c66dd")),
+                    start_time: NaiveDateTime::parse_from_str(
+                        "2024-04-24T06:00:00Z",
+                        "%Y-%m-%dT%H:%M:%SZ",
+                    )
+                    .unwrap()
+                    .and_utc(),
+                    end_time: NaiveDateTime::parse_from_str(
+                        "2024-04-24T07:00:00Z",
+                        "%Y-%m-%dT%H:%M:%SZ",
+                    )
+                    .unwrap()
+                    .and_utc(),
+                }),
+            }],
         };
 
         assert_eq!(parsed_data, expected_data);
