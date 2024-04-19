@@ -1,7 +1,7 @@
 use std::fmt;
 
 use anyhow::{anyhow, Context};
-use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, NaiveTime, TimeZone, Timelike, Utc};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
 use serde::Deserialize;
@@ -21,7 +21,6 @@ enum Weekday {
     Sunday,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct CourtId {
     name: String,
@@ -64,17 +63,14 @@ struct Slot {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let client = Client::builder().user_agent(USER_AGENT).build()?;
-    //println!("{:#?}", client);
 
-    println!("Delsu:\n{}", check_delsu(&client).await?);
-    println!("Hakis:\n{}", check_hakis(&client).await?);
+    println!("{}", check_delsu(&client, Weekday::Tuesday, 19).await?);
+    println!("{}", check_hakis(&client, Weekday::Wednesday, 18).await?);
 
     Ok(())
 }
 
-async fn check_hakis(client: &Client) -> anyhow::Result<String> {
-    let day = Weekday::Wednesday;
-    let hour = 18;
+async fn check_hakis(client: &Client, day: Weekday, local_hour: u32) -> anyhow::Result<String> {
     let hakis = CourtId::new(
         "Hakis",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
@@ -82,16 +78,11 @@ async fn check_hakis(client: &Client) -> anyhow::Result<String> {
         "59305e30-8b49-11e9-800b-fa163e3c66dd",
         "d7c92d04-807b-11e9-b480-fa163e3c66dd",
     );
-    // println!("Hakis:\n{:#?}", hakis);
-    let data = get_slot_availability_data(client, &hakis, &day).await?;
-    let slots = extract_slots_from_response(data);
-    let result = check_slot_availability(&slots, &day.date_str(), hour);
-    Ok(result)
+
+    check_court(client, &hakis, day, local_hour).await
 }
 
-async fn check_delsu(client: &Client) -> anyhow::Result<String> {
-    let day = Weekday::Tuesday;
-    let hour = 19;
+async fn check_delsu(client: &Client, day: Weekday, local_hour: u32) -> anyhow::Result<String> {
     let delsu = CourtId::new(
         "Delsu",
         "2b325906-5b7a-11e9-8370-fa163e3c66dd",
@@ -99,11 +90,41 @@ async fn check_delsu(client: &Client) -> anyhow::Result<String> {
         "59305e30-8b49-11e9-800b-fa163e3c66dd",
         "ea8b1cf4-807b-11e9-93b7-fa163e3c66dd",
     );
-    // println!("Delsu:\n{:#?}", delsu);
-    let data = get_slot_availability_data(client, &delsu, &day).await?;
-    let slots = extract_slots_from_response(data);
-    let result = check_slot_availability(&slots, &day.date_str(), hour);
-    Ok(result)
+
+    check_court(client, &delsu, day, local_hour).await
+}
+
+async fn check_court(
+    client: &Client,
+    court: &CourtId,
+    day: Weekday,
+    hour: u32,
+) -> anyhow::Result<String> {
+    let data = get_slot_availability_data(client, court, &day).await?;
+    let slots = extract_free_slots_from_response(data);
+
+    println!("Free slots for {}:", court.name);
+    for (index, slot) in slots.iter().enumerate() {
+        println!("{index:>2}: {}", slot);
+    }
+
+    let date_str = day.date_str();
+    match check_slot_availability(&slots, hour) {
+        None => Ok(format!(
+            "Päivälle {date_str} ei löytynyt yhtään vapaata vuoroa"
+        )),
+        Some(free) => {
+            if free {
+                Ok(format!(
+                    "Päivälle {date_str} on vapaana vuoro joka loppuu tunnilla {hour}"
+                ))
+            } else {
+                Ok(format!(
+                    "Päivälle {date_str} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
+                ))
+            }
+        }
+    }
 }
 
 async fn get_slot_availability_data(
@@ -114,25 +135,15 @@ async fn get_slot_availability_data(
     let mut headers = HeaderMap::new();
     headers.insert("X-Subdomain", "arenacenter".parse()?);
 
-    let request = client
+    let response = client
         .get(API_URL)
         .query(&court.query_parameters(weekday))
-        .headers(headers);
-
-    //println!("Request:\n{:#?}", request);
-
-    let response = request.send().await.context("Request failed")?;
-
-    //println!("{:#?}", response);
+        .headers(headers)
+        .send()
+        .await
+        .context("Request failed")?;
 
     if response.status().is_success() {
-        //let body = response.text().await?;
-        //println!("Response:\n{}", body);
-        //let json: serde_json::Value = response
-        //    .json()
-        //    .await
-        //    .context("Failed to parse response json")?;
-        //println!("Response:\n{json:#?}");
         let api_response: ApiResponse = response.json().await?;
         Ok(api_response)
     } else {
@@ -140,24 +151,22 @@ async fn get_slot_availability_data(
     }
 }
 
-fn check_slot_availability(court_data: &[Slot], day_as_string: &str, hour: u32) -> String {
+fn check_slot_availability(court_data: &[Slot], hour: u32) -> Option<bool> {
     if !court_data.is_empty() {
-        for (index, slot) in court_data.iter().enumerate() {
-            println!("{index:>2}: {:}", slot);
+        let utc_hour = local_hour_to_utc(hour).ok()?;
+        for slot in court_data.iter() {
             // TODO: better availability check
-            if slot.end_time.hour() == hour {
-                return format!(
-                    "Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour}"
-                );
+            if slot.end_time.hour() == utc_hour {
+                return Some(true);
             }
         }
-        format!("Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}")
+        Some(false)
     } else {
-        format!("Päivälle {day_as_string} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt",)
+        None
     }
 }
 
-fn extract_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
+fn extract_free_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
     api_response
         .data
         .into_iter()
@@ -171,6 +180,16 @@ fn extract_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
             }
         })
         .collect()
+}
+
+fn local_hour_to_utc(hour: u32) -> anyhow::Result<u32> {
+    let naive_time =
+        NaiveTime::from_hms_opt(hour, 0, 0).context("Failed to create time from given hour")?;
+    let local_date = Local::now().date_naive();
+    let naive_datetime = local_date.and_time(naive_time);
+    let local_datetime = Local.from_local_datetime(&naive_datetime).unwrap();
+    let utc_datetime = local_datetime.with_timezone(&Utc);
+    Ok(utc_datetime.hour())
 }
 
 impl Weekday {
@@ -245,9 +264,9 @@ impl fmt::Display for Slot {
             "Slot {} {} {:02}:{:02} - {:02}:{:02}",
             self.start_time.format("%Y-%m-%d"),
             self.start_time.weekday(),
-            self.start_time.hour(),
+            self.start_time.with_timezone(&Local).hour(),
             self.start_time.minute(),
-            self.end_time.hour(),
+            self.end_time.with_timezone(&Local).hour(),
             self.end_time.minute()
         )
     }
