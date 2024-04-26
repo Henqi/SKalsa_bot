@@ -182,7 +182,12 @@ async fn check_court(
     }
 }
 
-async fn get_free_slots(client: &Client, court: &CourtId, day: &Weekday, verbose: bool) -> anyhow::Result<Vec<Slot>> {
+async fn get_free_slots(
+    client: &Client,
+    court: &CourtId,
+    day: &Weekday,
+    verbose: bool,
+) -> anyhow::Result<Vec<Slot>> {
     let data = get_slot_availability_data(client, court, day).await?;
     let slots = extract_free_slots_from_response(data);
     if verbose {
