@@ -159,16 +159,7 @@ async fn check_court(
     hour: u32,
     verbose: bool,
 ) -> anyhow::Result<ColoredString> {
-    let data = get_slot_availability_data(client, court, &day).await?;
-    let slots = extract_free_slots_from_response(data);
-
-    if verbose {
-        println!("{}", format!("Free slots for {}:", court.name).bold());
-        for (index, slot) in slots.iter().enumerate() {
-            println!("{index:>2}: {}", slot);
-        }
-    }
-
+    let slots = get_free_slots(client, court, &day, verbose).await?;
     let date_str = day.date_str();
     let utc_hour = local_hour_to_utc(hour)?;
     match check_slot_availability(&slots, utc_hour) {
@@ -189,6 +180,18 @@ async fn check_court(
             }
         }
     }
+}
+
+async fn get_free_slots(client: &Client, court: &CourtId, day: &Weekday, verbose: bool) -> anyhow::Result<Vec<Slot>> {
+    let data = get_slot_availability_data(client, court, day).await?;
+    let slots = extract_free_slots_from_response(data);
+    if verbose {
+        println!("{}", format!("Free slots for {}:", court.name).bold());
+        for (index, slot) in slots.iter().enumerate() {
+            println!("{index:>2}: {}", slot);
+        }
+    }
+    Ok(slots)
 }
 
 async fn get_slot_availability_data(
@@ -236,11 +239,7 @@ fn extract_free_slots_from_response(api_response: ApiResponse) -> Vec<Slot> {
         .filter(|item| item.data_type == "slot" && item.attributes.is_some())
         .map(|item| {
             let attributes = item.attributes.unwrap();
-            Slot {
-                id: attributes.product_id.unwrap_or_default(),
-                start_time: attributes.start_time,
-                end_time: attributes.end_time,
-            }
+            Slot::from(attributes)
         })
         .collect()
 }
@@ -372,6 +371,16 @@ impl TryFrom<i32> for Weekday {
             6 => Ok(Weekday::Saturday),
             7 => Ok(Weekday::Sunday),
             _ => Err("Invalid day of the week"),
+        }
+    }
+}
+
+impl From<Attributes> for Slot {
+    fn from(attributes: Attributes) -> Self {
+        Slot {
+            id: attributes.product_id.unwrap_or_default(),
+            start_time: attributes.start_time,
+            end_time: attributes.end_time,
         }
     }
 }
