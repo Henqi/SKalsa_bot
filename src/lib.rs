@@ -252,7 +252,7 @@ impl Weekday {
         }
     }
 
-    pub fn date_str(&self) -> String {
+    pub fn formatted_date(&self) -> String {
         self.next_date().format("%Y-%m-%d").to_string()
     }
 
@@ -289,7 +289,7 @@ impl CourtId {
     }
 
     pub fn query_parameters(&self, day: &Weekday) -> Vec<(&'static str, String)> {
-        let date = day.date_str();
+        let date = day.formatted_date();
         vec![
             ("filter[ismultibooking]", "false".to_string()),
             ("filter[branch_id]", self.branch_id.clone()),
@@ -315,6 +315,12 @@ impl fmt::Display for Slot {
             self.end_time.with_timezone(&Local).hour(),
             self.end_time.minute()
         )
+    }
+}
+
+impl fmt::Display for Weekday {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.formatted_date())
     }
 }
 
@@ -365,23 +371,15 @@ impl From<Attributes> for Slot {
 impl CourtStatus {
     pub fn message(&self) -> ColoredString {
         match self {
-            CourtStatus::Free { day: weekday, hour } => format!(
-                "Päivälle {} on vapaana vuoro joka loppuu tunnilla {}",
-                weekday.date_str(),
-                hour
-            )
-            .green(),
-            CourtStatus::Taken { day: weekday, hour } => format!(
-                "Päivälle {} EI OLE vapaata vuoroa joka loppuu tunnilla {}",
-                weekday.date_str(),
-                hour
-            )
-            .yellow(),
-            CourtStatus::NoData { day: weekday } => format!(
-                "Päivälle {} ei löytynyt yhtään vapaata vuoroa",
-                weekday.date_str()
-            )
-            .red(),
+            CourtStatus::Free { day, hour } => {
+                format!("Päivälle {day} on vapaana vuoro joka loppuu tunnilla {hour}").green()
+            }
+            CourtStatus::Taken { day, hour } => {
+                format!("Päivälle {day} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}").yellow()
+            }
+            CourtStatus::NoData { day } => {
+                format!("Päivälle {day} ei löytynyt yhtään vapaata vuoroa").red()
+            }
         }
     }
 }
@@ -419,7 +417,7 @@ mod tests {
     #[test]
     fn test_date_str_format() {
         let test_day = Weekday::Friday;
-        let date_str = test_day.date_str();
+        let date_str = test_day.formatted_date();
         // Example test to ensure format is "YYYY-MM-DD"
         assert!(date_str.chars().nth(4) == Some('-') && date_str.chars().nth(7) == Some('-'));
         assert_eq!(date_str.len(), 10);
