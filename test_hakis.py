@@ -9,9 +9,9 @@ params = {
     "filter[group_id]": "a17ccc08-838a-11e9-8fd9-fa163e3c66dd",
     "filter[product_id]": "59305e30-8b49-11e9-800b-fa163e3c66dd",
     "filter[user_id]": "d7c92d04-807b-11e9-b480-fa163e3c66dd",
-    "filter[date]": "2024-04-24",
-    "filter[start]": "2024-04-24",
-    "filter[end]": "2024-04-24",
+    "filter[date]": "2024-05-24",
+    "filter[start]": "2024-05-24",
+    "filter[end]": "2024-05-24",
 }
 headers = {"X-Subdomain": "arenacenter"}
 
