@@ -390,6 +390,19 @@ impl fmt::Display for CourtStatus {
     }
 }
 
+impl fmt::Display for CourtName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                CourtName::Delsu => "Delsu".magenta().bold(),
+                CourtName::Hakis => "Hakis".cyan().bold(),
+            }
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

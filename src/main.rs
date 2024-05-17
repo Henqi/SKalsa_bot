@@ -38,11 +38,13 @@ async fn main() -> anyhow::Result<()> {
         }
         None => {
             println!(
-                "{}",
+                "{}: {}",
+                CourtName::Delsu,
                 skalsa_bot::check_delsu(args.day, args.time, args.verbose).await?
             );
             println!(
-                "{}",
+                "{}: {}",
+                CourtName::Hakis,
                 skalsa_bot::check_hakis(args.day, args.time, args.verbose).await?
             );
         }
