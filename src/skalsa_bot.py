@@ -19,7 +19,7 @@ helsinki_tz = ZoneInfo("Europe/Helsinki")
 utc_tz = ZoneInfo("UTC")
 
 load_dotenv()
-api_key = os.getenv("TEST_API_KEY")
+api_key = os.getenv("API_KEY")
 logfile_path = os.getenv("LOGFILE_PATH")
 
 logging.basicConfig(
