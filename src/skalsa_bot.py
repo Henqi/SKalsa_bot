@@ -2,17 +2,24 @@ import datetime
 import logging
 import os
 
-from datetime import date
+from datetime import date, datetime as dt
 from logging.handlers import TimedRotatingFileHandler
-
-import requests
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
+import requests
+
+# Define Helsinki timezone
+helsinki_tz = ZoneInfo("Europe/Helsinki")
+
+# Define UTC timezone
+utc_tz = ZoneInfo("UTC")
+
 load_dotenv()
-api_key = os.getenv("API_KEY")
+api_key = os.getenv("TEST_API_KEY")
 logfile_path = os.getenv("LOGFILE_PATH")
 
 logging.basicConfig(
@@ -53,7 +60,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = date.today()
     day = get_next_same_weekday(today, 3)
-    day_as_string = day.strftime("%Y-%m-%d")
+    day_as_string = day.isoformat()
     hour = "18"
     ismultibooking = "false"
     branch_id = "2b325906-5b7a-11e9-8370-fa163e3c66dd"
@@ -71,7 +78,7 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = date.today()
     day = get_next_same_weekday(today, 2)
-    day_as_string = day.strftime("%Y-%m-%d")
+    day_as_string = day.isoformat()
     hour = "19"
     ismultibooking = "false"
     branch_id = "2b325906-5b7a-11e9-8370-fa163e3c66dd"
@@ -106,7 +113,14 @@ def check_slot_availability(
 
     if len(reservation_json["data"]) > 0:
         for slot in reservation_json["data"]:
-            if f"{day_as_string} {hour}" in slot["attributes"]["endtime"]:
+
+            date_str = str(slot["attributes"]["endtime"])
+            date_isoformat = dt.fromisoformat(date_str)
+            date_isoformat = date_isoformat.replace(tzinfo=utc_tz)
+            date_isoformat = date_isoformat.astimezone(helsinki_tz)
+            date_isoformat_str = date_isoformat.strftime("%Y-%m-%d")
+
+            if date_isoformat_str == day_as_string and date_isoformat.hour == int(hour):
                 result = f"Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour}"
                 return result
         return f"Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
