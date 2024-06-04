@@ -69,7 +69,7 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = "d7c92d04-807b-11e9-b480-fa163e3c66dd"  # kenttä2
 
     result = check_slot_availability(
-        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
+        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string, "Kalsan"
     )
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
@@ -87,14 +87,14 @@ async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = "ea8b1cf4-807b-11e9-93b7-fa163e3c66dd"  # kenttä3
 
     result = check_slot_availability(
-        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
+        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string, "Delsun"
     )
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
 
 def check_slot_availability(
-    branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string
+    branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string, team
 ):
     day_url = (
         f"https://avoinna24.fi/api/slot?filter[ismultibooking]={ismultibooking}"
@@ -120,11 +120,20 @@ def check_slot_availability(
             date_isoformat_str = date_isoformat.strftime("%Y-%m-%d")
 
             if date_isoformat_str == day_as_string and date_isoformat.hour == int(hour):
-                result = f"Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour}"
+                logging.info(
+                    f"Päivälle {day_as_string} on vapaana vuoro joka loppuu tunnilla {hour} ({team})"
+                )
+                result = f"Kentällä VAPAATA ennen {team} vuoroa ({day_as_string})"
                 return result
-        return f"Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour}"
+        logging.info(
+            f"Päivälle {day_as_string} EI OLE vapaata vuoroa joka loppuu tunnilla {hour} ({team})"
+        )
+        return f"Kenttä VARATTU ennen {team} vuoroa ({day_as_string})"
     else:
-        return f"Päivälle {day_as_string} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt"
+        logging.info(
+            f"Päivälle {day_as_string} ei löytynyt yhtään vapaata vuoroa / dataa ei löytynyt ({team})"
+        )
+        return f"Ei vapaita vuoroja / dataa ei löytynyt ({day_as_string})"
 
 
 if __name__ == "__main__":
