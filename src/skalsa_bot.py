@@ -113,11 +113,8 @@ def check_slot_availability(
 
     if len(reservation_json["data"]) > 0:
         for slot in reservation_json["data"]:
-
             date_str = str(slot["attributes"]["endtime"])
-            date_isoformat = dt.fromisoformat(date_str)
-            date_isoformat = date_isoformat.replace(tzinfo=utc_tz)
-            date_isoformat = date_isoformat.astimezone(helsinki_tz)
+            date_isoformat = dt.fromisoformat(date_str).replace(tzinfo=utc_tz).astimezone(helsinki_tz)
             date_isoformat_str = date_isoformat.strftime("%Y-%m-%d")
 
             if date_isoformat_str == day_as_string and date_isoformat.hour == int(hour):
