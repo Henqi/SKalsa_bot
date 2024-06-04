@@ -29,6 +29,8 @@ logging.basicConfig(
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
 logging.getLogger("hpack").setLevel("INFO")
+logging.getLogger("httpcore.http11").setLevel("INFO")
+logging.getLogger("httpcore.connection").setLevel("INFO")
 
 
 def get_next_same_weekday(date: datetime.date, weekday: int):
