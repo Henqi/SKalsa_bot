@@ -1,3 +1,5 @@
+[![Ruff check & format](https://github.com/Henqi/SKalsa_bot/actions/workflows/ruff_format.yaml/badge.svg)](https://github.com/Henqi/SKalsa_bot/actions/workflows/ruff_format.yaml)
+
 # SKalsa_bot
 
 My feeble attempt at creating a working telegram bot
