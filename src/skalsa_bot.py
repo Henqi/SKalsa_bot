@@ -77,6 +77,24 @@ async def hakis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
 
+async def hakis_weekly(context: ContextTypes.DEFAULT_TYPE):
+    today = date.today()
+    day = get_next_same_weekday(today, 3)
+    day_as_string = day.isoformat()
+    hour = "18"
+    ismultibooking = "false"
+    branch_id = "2b325906-5b7a-11e9-8370-fa163e3c66dd"
+    group_id = "a17ccc08-838a-11e9-8fd9-fa163e3c66dd"
+    product_id = "59305e30-8b49-11e9-800b-fa163e3c66dd"
+    user_id = "d7c92d04-807b-11e9-b480-fa163e3c66dd"  # kenttä2
+
+    result = check_slot_availability(
+        branch_id, group_id, product_id, user_id, ismultibooking, hour, day_as_string, "Kalsan"
+    )
+
+    await context.bot.send_message(chat_id=context.job.chat_id, text=result)
+
+
 async def delsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = date.today()
     day = get_next_same_weekday(today, 2)
@@ -138,8 +156,31 @@ def check_slot_availability(
         return f"Ei vapaita vuoroja / dataa ei löytynyt ({day_as_string})"
 
 
+async def weekly_message_hakis_enable(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    context.job_queue.run_daily(
+        hakis_weekly,
+        time=datetime.time(13, 37, 0, tzinfo=helsinki_tz),
+        days=[3],
+        name="weekly-hakis-message",
+        chat_id=chat_id,
+    )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti PÄÄLLÄ"
+    )
+
+
+async def weekly_message_hakis_disable(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.job_queue.get_jobs_by_name("weekly-hakis-message").enabled = False
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti POIS PÄÄLTÄ"
+    )
+
+
 if __name__ == "__main__":
     application = ApplicationBuilder().token(api_key).build()
+
+    job_queue = application.job_queue
 
     start_handler = CommandHandler("start", start)
     application.add_handler(start_handler)
@@ -149,5 +190,13 @@ if __name__ == "__main__":
 
     delsu_handler = CommandHandler("delsu", delsu)
     application.add_handler(delsu_handler)
+
+    weekly_hakis_enable_handler = CommandHandler("hakisWeeklyEnable", weekly_message_hakis_enable)
+    application.add_handler(weekly_hakis_enable_handler)
+
+    weekly_message_hakis_disable_handler = CommandHandler(
+        "hakisWeeklyDisable", weekly_message_hakis_disable
+    )
+    application.add_handler(weekly_message_hakis_disable_handler)
 
     application.run_polling()
