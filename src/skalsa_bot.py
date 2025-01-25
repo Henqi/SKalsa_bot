@@ -171,7 +171,7 @@ async def weekly_message_hakis_enable(update: Update, context: ContextTypes.DEFA
 
 
 async def weekly_message_hakis_disable(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.job_queue.get_jobs_by_name("weekly-hakis-message").enabled = False
+    context.job_queue.get_jobs_by_name("weekly-hakis-message")[0].enabled = False
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti POIS PÄÄLTÄ"
     )
