@@ -158,23 +158,35 @@ def check_slot_availability(
 
 async def weekly_message_hakis_enable(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
-    context.job_queue.run_daily(
-        hakis_weekly,
-        time=datetime.time(13, 37, 0, tzinfo=helsinki_tz),
-        days=[3],
-        name="weekly-hakis-message",
-        chat_id=chat_id,
-    )
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti PÄÄLLÄ"
-    )
+    if not context.job_queue.get_jobs_by_name("weekly-hakis-message"):
+        context.job_queue.run_daily(
+            hakis_weekly,
+            time=datetime.time(13, 37, 0, tzinfo=helsinki_tz),
+            days=[3],
+            name="weekly-hakis-message",
+            chat_id=chat_id,
+        )
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti PÄÄLLÄ"
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Viikottainen /hakis viesti ON JO VALMIIKSI PÄÄLLÄ",
+        )
 
 
 async def weekly_message_hakis_disable(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.job_queue.get_jobs_by_name("weekly-hakis-message")[0].schedule_removal()
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti POIS PÄÄLTÄ"
-    )
+    if not context.job_queue.get_jobs_by_name("weekly-hakis-message"):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Viikottainen /hakis viesti EI OLE VIELÄ EDES PÄÄLLÄ",
+        )
+    else:
+        context.job_queue.get_jobs_by_name("weekly-hakis-message")[0].schedule_removal()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id, text="Viikottainen /hakis viesti POIS PÄÄLTÄ"
+        )
 
 
 if __name__ == "__main__":
