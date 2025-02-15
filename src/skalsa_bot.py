@@ -1,8 +1,7 @@
-import datetime
 import logging
 import os
 
-from datetime import date, datetime as dt
+from datetime import date, datetime as dt, time, timedelta
 from logging.handlers import TimedRotatingFileHandler
 from zoneinfo import ZoneInfo
 
@@ -33,7 +32,7 @@ logging.getLogger("httpcore.http11").setLevel("INFO")
 logging.getLogger("httpcore.connection").setLevel("INFO")
 
 
-def get_next_same_weekday(date: datetime.date, weekday: int):
+def get_next_same_weekday(date: date, weekday: int):
     """Returns the date of the next occurrence of the selected weekday.
     If the given date is the selected weekday, returns the given date.
     Otherwise looks for the next occurrence of the selected weekday.
@@ -49,7 +48,7 @@ def get_next_same_weekday(date: datetime.date, weekday: int):
         raise ValueError("Input value must be between 0 and 7 (inclusive)")
     else:
         days = (weekday - date.isoweekday() + 7) % 7
-        return date + datetime.timedelta(days=days)
+        return date + timedelta(days=days)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -161,7 +160,7 @@ async def weekly_message_hakis_enable(update: Update, context: ContextTypes.DEFA
     if not context.job_queue.get_jobs_by_name("weekly-hakis-message"):
         context.job_queue.run_daily(
             hakis_weekly,
-            time=datetime.time(13, 37, 0, tzinfo=helsinki_tz),
+            time=time(13, 37, 0, tzinfo=helsinki_tz),
             days=[3],
             name="weekly-hakis-message",
             chat_id=chat_id,
